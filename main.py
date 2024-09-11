@@ -83,8 +83,8 @@ def combine_data(tr_tag: "bs4.element.ResultSet"):
             }
     
         return {
-            "cislo": tr_tag[0].getText(),
-            "jmeno": tr_tag[1].getText(),
+            "code": tr_tag[0].getText(),
+            "location": tr_tag[1].getText(),
             "registered": data_from_link["head"].get("registered"),  
             "envelopes": data_from_link["head"].get("envelopes"),
             "valid": data_from_link["head"].get("valid"),
@@ -92,18 +92,18 @@ def combine_data(tr_tag: "bs4.element.ResultSet"):
         }
 
 def zapis_dat(data, jmeno_souboru):
-    pprint(data[0])
+    pprint(data)
     
-    with open(jmeno_souboru, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(data[0])
-
-
-
-    
-    
+    if isinstance(data, list) and isinstance(data[0], dict):
         
+        headers = data[0].keys()
 
-    
+    with open(jmeno_souboru, "w", newline="") as f:
+        writer = csv.DictWriter(f, delimiter=";", fieldnames=headers)
+        writer.writeheader()  
+        for row in data:
+            if row:
+                writer.writerow(row)
+        
 if __name__ == "__main__":
     main()

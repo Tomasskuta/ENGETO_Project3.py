@@ -9,7 +9,6 @@ import requests
 from bs4 import BeautifulSoup
 from pprint import pprint
 import csv
-import traceback
 
 def main():
     url = "https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
@@ -92,17 +91,35 @@ def combine_data(tr_tag: "bs4.element.ResultSet"):
         }
 
 def zapis_dat(data, jmeno_souboru):
-    pprint(data)
-    
-    if isinstance(data, list) and isinstance(data[0], dict):
-        
-        headers = data[0].keys()
 
+    if isinstance(data, list) and isinstance(data[0], dict):
+        parties_data = []
+        for item in data:
+            if item is not None and isinstance(item, dict):
+                if "parties" in item:
+                    parties_data.append(item["parties"])
+                    del item["parties"]
+
+        headers_parties = []
+        for party in parties_data[1]:
+            if party is not None and isinstance(party, dict):
+                if "strana" in party:
+                    headers_parties.append(party["strana"])
+
+        headers = list(data[0].keys()) + headers_parties
+        
     with open(jmeno_souboru, "w", newline="") as f:
         writer = csv.DictWriter(f, delimiter=";", fieldnames=headers)
         writer.writeheader()  
-        for row in data:
+        
+        for i, row in enumerate(data):
             if row:
+                row.update({party_name: '' for party_name in headers_parties})
+                if i < len(parties_data):
+                    for party in parties_data[i]:
+                        if party["strana"] in row:
+                            row[party["strana"]] = party["hlasy"]
+
                 writer.writerow(row)
         
 if __name__ == "__main__":

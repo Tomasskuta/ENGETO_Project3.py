@@ -9,11 +9,13 @@ import requests
 from bs4 import BeautifulSoup
 from pprint import pprint
 import csv
+import traceback
 
 def main():
     url = "https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
     vystupni_soubor = "test.csv"
-    get_main_data(url)
+    data = get_main_data(url)
+    zapis_dat(data, vystupni_soubor)
 
 def get_main_data(url):    
     odp_serveru = requests.get(url) 
@@ -28,7 +30,7 @@ def get_main_data(url):
         data = combine_data(td_na_radku)
         vysledky.append(data)
     
-    pprint(vysledky)
+    return vysledky
     
 def get_data_from_link(link):
     odp_serveru = requests.get(link) 
@@ -89,5 +91,19 @@ def combine_data(tr_tag: "bs4.element.ResultSet"):
             "parties": data_from_link["parties"]
         }
 
+def zapis_dat(data, jmeno_souboru):
+    pprint(data[0])
+    
+    with open(jmeno_souboru, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(data[0])
+
+
+
+    
+    
+        
+
+    
 if __name__ == "__main__":
     main()

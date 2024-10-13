@@ -16,6 +16,7 @@ def main():
     data = get_main_data(url)
     zapis_dat(data, vystupni_soubor)
 
+
 def get_main_data(url):    
     odp_serveru = requests.get(url) 
     soup = BeautifulSoup(odp_serveru.text, 'html.parser') 
@@ -31,26 +32,36 @@ def get_main_data(url):
     
     return vysledky
     
-def get_data_from_link(link):
+def get_data_from_link(link,okrsek):
     odp_serveru = requests.get(link) 
     soup = BeautifulSoup(odp_serveru.text, 'html.parser') 
 
     head_table_tag = soup.find("table", {"class": "table"})
     vsechny_tr_head = head_table_tag.find_all("tr") 
     vysledky_head = {}
-    for tr in vsechny_tr_head[2:]:
-        td_na_radku_head = tr.find_all("td")
-        vysledky_head = {
-            "registered": td_na_radku_head[3].get_text(),
-            "envelopes": td_na_radku_head[4].get_text(),
-            "valid": td_na_radku_head[7].get_text(),
-        }
-        break
+    if not okrsek:
+        for tr in vsechny_tr_head[2:]:
+            td_na_radku_head = tr.find_all("td")
+            vysledky_head = {
+                "registered": td_na_radku_head[3].get_text(),
+                "envelopes": td_na_radku_head[4].get_text(),
+                "valid": td_na_radku_head[7].get_text(),
+            }
+            break
+    else:
+        for tr in vsechny_tr_head[-1:]:
+            td_na_radku_head = tr.find_all("td")
+            vysledky_head = {
+                "registered": td_na_radku_head[0].get_text(),
+                "envelopes": td_na_radku_head[1].get_text(),
+                "valid": td_na_radku_head[4].get_text(),
+            }
+            break
 
     table_tag = soup.find("div", {"id": "core"})
     vsechny_tr = table_tag.find_all("tr")
     vysledky_parties = []
-    for tr in vsechny_tr[5:-1]:
+    for tr in vsechny_tr[4:-1]:
         td_na_radku = tr.find_all("td")
         if len(td_na_radku) > 2:
             vysledky_party = {
@@ -72,15 +83,12 @@ def combine_data(tr_tag: "bs4.element.ResultSet"):
     if len(tr_tag) >= 3: 
         link_td = tr_tag[2].find("a") 
         link = "https://volby.cz/pls/ps2017nss/" + link_td['href']
-        data_from_link = get_data_from_link(link)
+        data_from_link = get_data_from_link(link,False)
 
-        if data_from_link is None:
-            data_from_link = {
-                "registered": "N/A",
-                "envelopes": "N/A",
-                "valid": "N/A",
-            }
-    
+        if (data_from_link["head"].get("registered")) == None:
+            pprint("NONE")
+            data_from_link = get_data_from_link(okrsek(link),True)
+ 
         return {
             "code": tr_tag[0].getText(),
             "location": tr_tag[1].getText(),
@@ -122,5 +130,21 @@ def zapis_dat(data, jmeno_souboru):
 
                 writer.writerow(row)
         
+def okrsek(link):
+
+    odp_serveru = requests.get(link) 
+    soup = BeautifulSoup(odp_serveru.text, 'html.parser') 
+
+    table_tag = soup.find("div", {"id": "publikace"}) 
+    vsechny_tr = table_tag.find_all("tr") 
+
+    vysledky = []
+    for tr in vsechny_tr[1:]: 
+        td_na_radku = tr.find_all("td") 
+        link_td = td_na_radku[0].find("a")
+        link_in = "https://volby.cz/pls/ps2017nss/" + link_td['href']
+        
+    return(link_in)
+
 if __name__ == "__main__":
     main()

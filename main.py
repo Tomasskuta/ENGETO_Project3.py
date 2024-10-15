@@ -33,11 +33,6 @@ def get_main_data(url):
     return vysledky
     
 def get_data_from_link(link,okrsek):
-    if okrsek:
-        for i in link:
-            #pprint(i)
-            link = i
-    print(link)
     odp_serveru = requests.get(link)
     soup = BeautifulSoup(odp_serveru.text, 'html.parser') 
 
@@ -80,19 +75,16 @@ def get_data_from_link(link,okrsek):
         "parties": vysledky_parties
     }
 
-def combine_data(tr_tag: "bs4.element.ResultSet"):
-    """
-    Z kazdeho radku (tr) vyber urcite bunky (td)[index])
-    a zabal je do slovniku
-    """
+def combine_data(tr_tag):
+
     if len(tr_tag) >= 3: 
         link_td = tr_tag[2].find("a") 
         link = "https://volby.cz/pls/ps2017nss/" + link_td['href']
         data_from_link = get_data_from_link(link,False)
 
         if (data_from_link["parties"]) == []:
-            data_from_link = get_data_from_link(okrsek(link),True)
-            
+            data_from_link = okrsek(link)
+
         return {
             "code": tr_tag[0].getText(),
             "location": tr_tag[1].getText(),
@@ -133,6 +125,7 @@ def zapis_dat(data, jmeno_souboru):
                             row[party["strana"]] = party["hlasy"]
 
                 writer.writerow(row)
+
         
 def okrsek(link):
 
@@ -148,15 +141,37 @@ def okrsek(link):
 
     for tr in vsechny_tr[1:2]: 
         td_na_radku = tr.find_all("td") 
-        sublinks = []
+        big_dict = []
         for i in range(max_okrsek):
             link_td = td_na_radku[i].find("a")
             if link_td:
                 link_in = "https://volby.cz/pls/ps2017nss/" + link_td['href']
-                sublinks.append(link_in)
-                #print(link_in)
-    #pprint(sublinks)          
-    return(sublinks)
+            data_okrsky = get_data_from_link(link_in,True)
+            big_dict.append(data_okrsky)
+
+    vysledky_parties = {}
+    vysledky_head = {'envelopes': 0, 'registered': 0, 'valid': 0}
+
+    for result in big_dict:
+
+        vysledky_head['envelopes'] += int(result['head']['envelopes'])
+        vysledky_head['registered'] += int(result['head']['registered'].replace('\xa0', '').replace(' ', ''))
+        vysledky_head['valid'] += int(result['head']['valid'])
+
+        for party in result['parties']:
+            party_name = party['strana']
+            votes = int(party['hlasy'])
+            if party_name in vysledky_parties:
+                vysledky_parties[party_name] += votes
+            else:
+                vysledky_parties[party_name] = votes
+
+    vysledky_parties_list = [{'strana': party, 'hlasy': str(votes)} for party, votes in vysledky_parties.items()]
+    return {
+        "head": vysledky_head,
+        "parties": vysledky_parties_list
+    }
+    
         
 if __name__ == "__main__":
     main()

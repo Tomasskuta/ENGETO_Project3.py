@@ -33,7 +33,12 @@ def get_main_data(url):
     return vysledky
     
 def get_data_from_link(link,okrsek):
-    odp_serveru = requests.get(link) 
+    if okrsek:
+        for i in link:
+            #pprint(i)
+            link = i
+    print(link)
+    odp_serveru = requests.get(link)
     soup = BeautifulSoup(odp_serveru.text, 'html.parser') 
 
     head_table_tag = soup.find("table", {"class": "table"})
@@ -56,7 +61,6 @@ def get_data_from_link(link,okrsek):
                 "envelopes": td_na_radku_head[1].get_text(),
                 "valid": td_na_radku_head[4].get_text(),
             }
-            #pprint(vysledky_head)
             break
 
     table_tag = soup.find("div", {"id": "core"})
@@ -70,9 +74,7 @@ def get_data_from_link(link,okrsek):
                 "hlasy": td_na_radku[2].get_text(),
             } 
             vysledky_parties.append(vysledky_party)   
-    if okrsek:
-        #pprint(vysledky_parties)
-        pass        
+
     return {
         "head": vysledky_head,
         "parties": vysledky_parties
@@ -87,10 +89,10 @@ def combine_data(tr_tag: "bs4.element.ResultSet"):
         link_td = tr_tag[2].find("a") 
         link = "https://volby.cz/pls/ps2017nss/" + link_td['href']
         data_from_link = get_data_from_link(link,False)
-        
+
         if (data_from_link["parties"]) == []:
-            okrsek(link)
- 
+            data_from_link = get_data_from_link(okrsek(link),True)
+            
         return {
             "code": tr_tag[0].getText(),
             "location": tr_tag[1].getText(),
@@ -140,25 +142,21 @@ def okrsek(link):
     table_tag = soup.find("div", {"id": "publikace"}) 
     vsechny_tr = table_tag.find_all("tr") 
 
-    for tr in vsechny_tr[1:]: 
+    for tr in vsechny_tr[1:2]:
         td_na_radku_count = tr.find_all("td")
-
     max_okrsek = len(td_na_radku_count)
 
-    for tr in vsechny_tr[1:]: 
-        td_na_radku = tr.find_all("td")
-
+    for tr in vsechny_tr[1:2]: 
+        td_na_radku = tr.find_all("td") 
+        sublinks = []
         for i in range(max_okrsek):
             link_td = td_na_radku[i].find("a")
             if link_td:
                 link_in = "https://volby.cz/pls/ps2017nss/" + link_td['href']
-                print(link_td)
-                data_from_link_okrsek = (get_data_from_link(link_in,True))
-                pprint(data_from_link_okrsek)
-                #data_from_link_okrsek += data_from_link_okrsek
-                #print(i)
-            
-    return(link_in)
-
+                sublinks.append(link_in)
+                #print(link_in)
+    #pprint(sublinks)          
+    return(sublinks)
+        
 if __name__ == "__main__":
     main()

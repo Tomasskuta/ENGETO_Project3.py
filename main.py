@@ -8,10 +8,10 @@ discord: smajlikskutik
 import requests
 from bs4 import BeautifulSoup
 import csv
+import argparse
+import sys
 
-def main():
-    url = "https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
-    output_file = "test.csv"
+def main(url, output_file):
     data = get_main_data(url)
     zapis_dat(data, output_file)
 
@@ -21,7 +21,6 @@ def get_soup(url):
 
 def get_main_data(url):
     soup = get_soup(url)
-
     table_tag = soup.find("div", {"id": "core"})
     rows = table_tag.find_all("tr")
 
@@ -38,8 +37,8 @@ def get_data_from_link(link, okrsek):
 
     head_table_tag = soup.find("table", {"class": "table"})
     rows_head = head_table_tag.find_all("tr")
-    
     results_head = {}
+
     if not okrsek:
         for row in rows_head[2:]:
             cells_head = row.find_all("td")
@@ -68,15 +67,11 @@ def get_data_from_link(link, okrsek):
         if len(cells) > 2:
             results_parties[cells[1].get_text()] = cells[2].get_text()
 
-    return {
-        "head": results_head,
-        "parties": results_parties
-    }
+    return {"head": results_head, "parties": results_parties}
 
 def combine_data(row_tag):
     if len(row_tag) >= 3:
-        link_td = row_tag[2].find("a")
-        link = "https://volby.cz/pls/ps2017nss/" + link_td['href']
+        link = "https://volby.cz/pls/ps2017nss/" + row_tag[2].find("a")['href']
         data_from_link = get_data_from_link(link, False)
 
         if not data_from_link["parties"]:
@@ -91,28 +86,28 @@ def combine_data(row_tag):
             "parties": data_from_link["parties"]
         }
 
-def zapis_dat(data, jmeno_souboru):
-    if isinstance(data, list) and isinstance(data[0], dict):
-        headers = list(data[0].keys())
-        headers.remove('parties')
+def zapis_dat(data, output_file):
+    if not data or not isinstance(data[0], dict):
+        return
 
-        all_parties = []
+    general_headers = list(data[0].keys())
+    general_headers.remove('parties')  
 
-        for item in data:
-            if item is not None and isinstance(item, dict):
-                for party_name in item["parties"].keys():
-                    if party_name not in all_parties: 
-                        all_parties.append(party_name)
+    all_parties = []
+    for item in data:
+        if "parties" in item and item["parties"]:
+            all_parties = list(item["parties"].keys())
+            break  
 
-        headers += all_parties
+    headers = general_headers + all_parties  
 
-    with open(jmeno_souboru, "w", newline="") as f:
+    with open(output_file, "w", newline="") as f:
         writer = csv.DictWriter(f, delimiter=";", fieldnames=headers)
         writer.writeheader()
 
         for item in data:
             if item is not None:
-                row = item.copy()
+                row = item.copy() 
                 parties = row.pop("parties", {})  
 
                 for party_name in all_parties:
@@ -130,7 +125,7 @@ def okrsek(link):
         cells_count = row.find_all("td")
     max_okrsek = len(cells_count)
 
-    big_dict = []
+    okrsek_all_data = []
     for row in rows[1:2]:
         cells = row.find_all("td")
         for okrsek in range(max_okrsek):
@@ -138,12 +133,12 @@ def okrsek(link):
             if link_td:
                 link_in = "https://volby.cz/pls/ps2017nss/" + link_td['href']
             data_okrsky = get_data_from_link(link_in, True)
-            big_dict.append(data_okrsky)
+            okrsek_all_data.append(data_okrsky)
 
     results_parties = {}
     results_head = {'envelopes': 0, 'registered': 0, 'valid': 0}
 
-    for result in big_dict:
+    for result in okrsek_all_data:
         results_head['envelopes'] += int(result['head']['envelopes'])
         results_head['registered'] += int(result['head']['registered'].replace('\xa0', '').replace(' ', ''))
         results_head['valid'] += int(result['head']['valid'])
@@ -155,11 +150,20 @@ def okrsek(link):
             else:
                 results_parties[party_name] = votes
 
-    return {
-        "head": results_head,
-        "parties": results_parties  
-    }
+    return {"head": results_head, "parties": results_parties}
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Process election data.')
+    parser.add_argument('url', type=str, help='The URL of the election data page.')
+    parser.add_argument('output_file', type=str, help='The output CSV file name.')
+    args = parser.parse_args()
+
+    if not args.url.startswith("http://") and not args.url.startswith("https://"):
+        print("Error: The URL must start with 'http://' or 'https://'")
+        sys.exit(1)
+    if not args.output_file.endswith(".csv"):
+        print("Error: The NAME of csv output file must end with .csv'")
+        sys.exit(1)
+    
+    main(args.url, args.output_file)
 

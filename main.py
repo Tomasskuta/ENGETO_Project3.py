@@ -139,9 +139,9 @@ def okrsek(link):
     results_head = {'envelopes': 0, 'registered': 0, 'valid': 0}
 
     for result in okrsek_all_data:
-        results_head['envelopes'] += int(result['head']['envelopes'])
+        results_head['envelopes'] += int(result['head']['envelopes'].replace('\xa0', '').replace(' ', ''))
         results_head['registered'] += int(result['head']['registered'].replace('\xa0', '').replace(' ', ''))
-        results_head['valid'] += int(result['head']['valid'])
+        results_head['valid'] += int(result['head']['valid'].replace('\xa0', '').replace(' ', ''))
 
         for party_name, votes in result['parties'].items():
             votes = int(votes)
@@ -153,13 +153,13 @@ def okrsek(link):
     return {"head": results_head, "parties": results_parties}
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process election data.')
-    parser.add_argument('url', type=str, help='The URL of the election data page.')
-    parser.add_argument('output_file', type=str, help='The output CSV file name.')
+    parser = argparse.ArgumentParser(description='Process Czech election data from 2017. How to use it: python main.py "link" "output_file". More info with example in README.md')
+    parser.add_argument('url', type=str, help='The URL of the election data page. Must be in format "https://www.volby.cz/pls/ps2017nss/..." or "http://www.volby.cz/pls/ps2017nss/..."')
+    parser.add_argument('output_file', type=str, help='The output CSV file name. Must be in format "name.csv"')
     args = parser.parse_args()
 
-    if not args.url.startswith("http://") and not args.url.startswith("https://"):
-        print("Error: The URL must start with 'http://' or 'https://'")
+    if not args.url.startswith("http://www.volby.cz/pls/ps2017nss/") and not args.url.startswith("https://www.volby.cz/pls/ps2017nss/"):
+        print("Error: The URL must start with 'http://www.volby.cz/pls/ps2017nss/' or 'https://www.volby.cz/pls/ps2017nss/'")
         sys.exit(1)
     if not args.output_file.endswith(".csv"):
         print("Error: The NAME of csv output file must end with .csv'")

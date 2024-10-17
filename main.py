@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 import csv
 import argparse
 import sys
+from pprint import pprint
 
 def main(url, output_file):
     data = get_main_data(url)
@@ -19,13 +20,19 @@ def get_soup(url):
     response = requests.get(url)
     return BeautifulSoup(response.text, 'html.parser')
 
+def is_valid_parties_data(parties):
+    for party, votes in parties.items():
+        if not party.isdigit():
+            return True
+    return False
+
 def get_main_data(url):
     soup = get_soup(url)
     table_tag = soup.find("div", {"id": "core"})
     rows = table_tag.find_all("tr")
 
     results = []
-    for row in rows[2:-2]:
+    for row in rows[2:]:
         cells = row.find_all("td")
         data = combine_data(cells)
         results.append(data)
@@ -71,10 +78,13 @@ def get_data_from_link(link, okrsek):
 
 def combine_data(row_tag):
     if len(row_tag) >= 3:
-        link = "https://volby.cz/pls/ps2017nss/" + row_tag[2].find("a")['href']
-        data_from_link = get_data_from_link(link, False)
-
-        if not data_from_link["parties"]:
+        if len(row_tag) >= 3 and row_tag[2].find("a") is not None:
+            link = "https://volby.cz/pls/ps2017nss/" + row_tag[2].find("a")['href']
+            data_from_link = get_data_from_link(link, False)
+        else:
+            return None
+        
+        if not is_valid_parties_data(data_from_link["parties"]):
             data_from_link = okrsek(link)
 
         return {
@@ -153,16 +163,18 @@ def okrsek(link):
     return {"head": results_head, "parties": results_parties}
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process Czech election data from 2017. How to use it: python main.py "link" "output_file". More info with example in README.md')
+    parser = argparse.ArgumentParser(description='Process Czech election data from 2017. How to use it: python main.py "link" "output_file". For link visit https://www.volby.cz/pls/ps2017nss/ps3?xjazyk=CZ and choose City for which you want to scrape the data and use that link from city itself. More info with example in README.md.')
     parser.add_argument('url', type=str, help='The URL of the election data page. Must be in format "https://www.volby.cz/pls/ps2017nss/..." or "http://www.volby.cz/pls/ps2017nss/..."')
     parser.add_argument('output_file', type=str, help='The output CSV file name. Must be in format "name.csv"')
     args = parser.parse_args()
 
     if not args.url.startswith("http://www.volby.cz/pls/ps2017nss/") and not args.url.startswith("https://www.volby.cz/pls/ps2017nss/"):
         print("Error: The URL must start with 'http://www.volby.cz/pls/ps2017nss/' or 'https://www.volby.cz/pls/ps2017nss/'")
+        print("Also format of command must be: url output_file")
         sys.exit(1)
     if not args.output_file.endswith(".csv"):
         print("Error: The NAME of csv output file must end with .csv'")
+        print("Also format of command must be: url output_file")
         sys.exit(1)
     
     main(args.url, args.output_file)

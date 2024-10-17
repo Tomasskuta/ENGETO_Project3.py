@@ -10,23 +10,34 @@ from bs4 import BeautifulSoup
 import csv
 import argparse
 import sys
-from pprint import pprint
 
-def main(url, output_file):
+def main(url: str, output_file: csv):
+    '''
+    Main app function
+    '''
     data = get_main_data(url)
     zapis_dat(data, output_file)
 
-def get_soup(url):
+def get_soup(url: str) -> BeautifulSoup:
+    '''
+    Function for getting soup from url
+    '''
     response = requests.get(url)
     return BeautifulSoup(response.text, 'html.parser')
 
-def is_valid_parties_data(parties):
+def is_valid_parties_data(parties: dict[str]) -> bool:
+    '''
+    Function for checking if we have data from first link - this is useful when city has more okrseks than one.
+    '''
     for party, votes in parties.items():
         if not party.isdigit():
             return True
     return False
 
-def get_main_data(url):
+def get_main_data(url: str) -> list:
+    '''
+    Function for getting data, combining location and code and then scraping other data from link containing envelopes, parties etc.
+    '''
     soup = get_soup(url)
     table_tag = soup.find("div", {"id": "core"})
     rows = table_tag.find_all("tr")
@@ -39,9 +50,11 @@ def get_main_data(url):
     
     return results
 
-def get_data_from_link(link, okrsek):
+def get_data_from_link(link: str, okrsek: bool) -> dict[str]:
+    '''
+    Function for getting data from link, depends if okrsek is true or not. If yes function is edited to match different table than when city has only one okrsek.
+    '''
     soup = get_soup(link)
-
     head_table_tag = soup.find("table", {"class": "table"})
     rows_head = head_table_tag.find_all("tr")
     results_head = {}
@@ -76,7 +89,10 @@ def get_data_from_link(link, okrsek):
 
     return {"head": results_head, "parties": results_parties}
 
-def combine_data(row_tag):
+def combine_data(row_tag) -> dict[{dict}]:
+    '''
+    Function for combining data without link (location, code) and then all data from link. If we have no data from first link it means that city has more okrseks.
+    '''
     if len(row_tag) >= 3:
         if len(row_tag) >= 3 and row_tag[2].find("a") is not None:
             link = "https://volby.cz/pls/ps2017nss/" + row_tag[2].find("a")['href']
@@ -96,7 +112,10 @@ def combine_data(row_tag):
             "parties": data_from_link["parties"]
         }
 
-def zapis_dat(data, output_file):
+def zapis_dat(data: list, output_file: csv) -> csv:
+    '''
+    Function for saving data to csv file.
+    '''
     if not data or not isinstance(data[0], dict):
         return
 
@@ -111,7 +130,7 @@ def zapis_dat(data, output_file):
 
     headers = general_headers + all_parties  
 
-    with open(output_file, "w", newline="") as f:
+    with open(output_file, "w", newline="", encoding='utf-8-sig') as f:
         writer = csv.DictWriter(f, delimiter=";", fieldnames=headers)
         writer.writeheader()
 
@@ -125,9 +144,11 @@ def zapis_dat(data, output_file):
 
                 writer.writerow(row)
 
-def okrsek(link):
+def okrsek(link: str):
+    '''
+    Function for getting data from each okrsek in cities where there are more than one (more links).
+    '''
     soup = get_soup(link)
-
     table_tag = soup.find("div", {"id": "publikace"})
     rows = table_tag.find_all("tr")
 
@@ -163,6 +184,9 @@ def okrsek(link):
     return {"head": results_head, "parties": results_parties}
 
 if __name__ == "__main__":
+    '''
+    This part only done when main is used. Not in case when just other function/s used from this script. Also two arguments defined here.
+    '''
     parser = argparse.ArgumentParser(description='Process Czech election data from 2017. How to use it: python main.py "link" "output_file". For link visit https://www.volby.cz/pls/ps2017nss/ps3?xjazyk=CZ and choose City for which you want to scrape the data and use that link from city itself. More info with example in README.md.')
     parser.add_argument('url', type=str, help='The URL of the election data page. Must be in format "https://www.volby.cz/pls/ps2017nss/..." or "http://www.volby.cz/pls/ps2017nss/..."')
     parser.add_argument('output_file', type=str, help='The output CSV file name. Must be in format "name.csv"')

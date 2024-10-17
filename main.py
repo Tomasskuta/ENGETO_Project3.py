@@ -85,7 +85,7 @@ def get_data_from_link(link: str, okrsek: bool) -> dict[str]:
     for row in rows[4:-1]:
         cells = row.find_all("td")
         if len(cells) > 2:
-            results_parties[cells[1].get_text()] = cells[2].get_text()
+            results_parties[cells[1].get_text()] = cells[2].get_text() #getting name of the party:votes
 
     return {"head": results_head, "parties": results_parties}
 
@@ -95,12 +95,12 @@ def combine_data(row_tag) -> dict[{dict}]:
     '''
     if len(row_tag) >= 3:
         if len(row_tag) >= 3 and row_tag[2].find("a") is not None:
-            link = "https://volby.cz/pls/ps2017nss/" + row_tag[2].find("a")['href']
+            link = "https://volby.cz/pls/ps2017nss/" + row_tag[2].find("a")['href'] #added start of the link since a href containts only remaining part of the link
             data_from_link = get_data_from_link(link, False)
         else:
             return None
         
-        if not is_valid_parties_data(data_from_link["parties"]):
+        if not is_valid_parties_data(data_from_link["parties"]): #if not, script knows there is more okrseks
             data_from_link = okrsek(link)
 
         return {
@@ -118,29 +118,29 @@ def zapis_dat(data: list, output_file: csv) -> csv:
     '''
     if not data or not isinstance(data[0], dict):
         return
-
-    general_headers = list(data[0].keys())
-    general_headers.remove('parties')  
+    
+    general_headers = list(data[0].keys() )
+    general_headers.remove('parties')  #removing parties since we dont want to have column parties
 
     all_parties = []
     for item in data:
         if "parties" in item and item["parties"]:
-            all_parties = list(item["parties"].keys())
+            all_parties = list(item["parties"].keys()) #getting keys from parties dict
             break  
 
-    headers = general_headers + all_parties  
+    headers = general_headers + all_parties #now we have general header and instead of parties column, we have each party
 
-    with open(output_file, "w", newline="", encoding='utf-8-sig') as f:
+    with open(output_file, "w", newline="", encoding='utf-8-sig') as f: #uft-8 coding would be enough, but with utf-8-sig also excel opens it with correct coding
         writer = csv.DictWriter(f, delimiter=";", fieldnames=headers)
         writer.writeheader()
 
         for item in data:
             if item is not None:
                 row = item.copy() 
-                parties = row.pop("parties", {})  
+                parties = row.pop("parties", {})  #popping parties for clean dict 
 
                 for party_name in all_parties:
-                    row[party_name] = parties.get(party_name, '')  
+                    row[party_name] = parties.get(party_name, '') #filling clean dict with actual party data/names
 
                 writer.writerow(row)
 
@@ -154,7 +154,7 @@ def okrsek(link: str):
 
     for row in rows[1:2]:
         cells_count = row.find_all("td")
-    max_okrsek = len(cells_count)
+    max_okrsek = len(cells_count) #getting max number of okrsek for for loop below
 
     okrsek_all_data = []
     for row in rows[1:2]:
@@ -163,14 +163,14 @@ def okrsek(link: str):
             link_td = cells[okrsek].find("a")
             if link_td:
                 link_in = "https://volby.cz/pls/ps2017nss/" + link_td['href']
-            data_okrsky = get_data_from_link(link_in, True)
-            okrsek_all_data.append(data_okrsky)
+            data_okrsky = get_data_from_link(link_in, True) #getting data link by link
+            okrsek_all_data.append(data_okrsky) #collecting all data, each link is one dict
 
     results_parties = {}
     results_head = {'envelopes': 0, 'registered': 0, 'valid': 0}
 
-    for result in okrsek_all_data:
-        results_head['envelopes'] += int(result['head']['envelopes'].replace('\xa0', '').replace(' ', ''))
+    for result in okrsek_all_data: #couting all dicts(each link one dict) together
+        results_head['envelopes'] += int(result['head']['envelopes'].replace('\xa0', '').replace(' ', '')) #replacing whitescape or unwated characters from html
         results_head['registered'] += int(result['head']['registered'].replace('\xa0', '').replace(' ', ''))
         results_head['valid'] += int(result['head']['valid'].replace('\xa0', '').replace(' ', ''))
 

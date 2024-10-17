@@ -1,5 +1,6 @@
 """
 projekt_3.py: třetí projekt do Engeto Online Python Akademie
+
 author: Tomáš Škuta
 email: tomasskuta@seznam.cz
 discord: smajlikskutik
@@ -125,7 +126,7 @@ def zapis_dat(data: list, output_file: csv) -> csv:
     all_parties = []
     for item in data:
         if "parties" in item and item["parties"]:
-            all_parties = list(item["parties"].keys()) #getting keys from parties dict
+            all_parties = list(item["parties"].keys()) #getting keys from parties dict - names of parties
             break  
 
     headers = general_headers + all_parties #now we have general header and instead of parties column, we have each party

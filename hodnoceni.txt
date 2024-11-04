@@ -1,0 +1,83 @@
+Tomáš Š.
+smajlikskutik
+Neviditelný
+
+Matouš Holinka — dnes v 7:42
+Ahoj, tady Matouš Holinka, z Engeta. Nezlob se prosím, že se ke tvému třetímu projektu dostávám až nyní. 
+
+Strohé hodnocení neprogramátora: projekt jsi úspěšně splnil. Dělal přesně to, co zadání ukládá. Pojďme se ale spolu podívat ještě na nějaké detaily. Jako seniorní vývojář jsem tam zahlédl pár věcí, o kterých by bylo fajn si povědět.
+
+☝️ sekce knihoven, řádek 9.  Začínáš importovat knihovny. V pořádku, ohlášení jsou na ůvodu souboru. Obvykle je ale řadíš nejprve standardní knihovny, následně knihovny třetích stran a finálně lokální moduly(víc na toto téma najdeš [1]):
+import sys
+import csv
+import argparse
+
+import requests
+from bs4 import BeautifulSoup
+
+
+❗ špatně uvedená verze Pythonu, ve tvém README.md uvádíš jako prerekvizitu Python 3.6. To ovšem není pravda, protože používáš speciální type hints typu list[str], což je zápis možná tuším 3.10. Tím pádem tvůj zápis nikdo s nižší verzí Pythonu nespustí.
+
+☝️  chybí dva prázdné řádky, řádky 14, 21, 28,. Pro lepší čitelnost se používají volné řádky. Dva volné řádky se dělají pouze před a po definici funkce (dokumentace [2]).
+❗ mix názvosloví EN/CZ. Pracuješ s anglickými jmény objektů, docstrings ale současně českými odkazy a jmény funkcí. Vlastně je jedno, který si vybereš, ale vždy zůstaň konzistentní a pracuj s jedním. Tak, aby případný čtenář tvého kódu neměl problém pochopit, co jak označuješ.
+
+☝️ dlouhé řádky, řádek 31, 95, 174, 175,... ... . Maximální délka řádku by měla být 79 znaků (dokumenace [3]). Vždycky můžeš řádky elegantně zalamovat:
+results_head['registered'] += int(
+    result['head']['registered']
+        .replace('\xa0', '')
+        .replace(' ', '')
+)
+
+☝️ nesprávný type hint, řádek 15. csv je jméno knihovny, ne type hint. V argparse správně uvádíš, že jde o  str.
+
+☝️ nesprávný docstring formát, řádek 23, 30, 39, ... Docstrings zapisujeme pomocí dvojitých uvozovek (jde o doporučení a sjednocení). Více můžeš omrknout v dokumentaci [4].
+
+☝️ nejasná, hárdkódovaná hodnota, řádek 47. Snaž se omezit hárdkódované hodnoty. Používej víc funkční parametry. Tím dosáhneš toho, že při komplikacích budeš muset přepisovat hodnoty ručně na několika místech. U rows[2:]: není poznat, proč pracuješ s dvojkou (obvykle stačí komentář, lépe můžeš použít pomocnou proměnnou, nebo defaultní parametr funkce).
+❗  špagetový kód, řádek 63-80. Tady opatrně, to že máš dva indentické kusy ohlášení hned pod sebou je první indikátor, že je v této funkci něco špatně. Ideálně bych vytknul stejná ohlášení do jedné funkce, kterou bych parametrizoval tím, co se mění. Potom ve tvé původní funkci zavoláš novou funkci.
+def my_func(start: int, indexes: tuple):
+    results_head = dict()
+
+    for row in rows_head[start:]:
+        cells_head = row.find_all("td")
+        results_head = {
+            "registered": cells_head[indexes[0]].get_text(),
+            "envelopes": cells_head[indexes[1]].get_text(),
+            "valid": cells_head[indexes[2]].get_text(),
+        }
+
+    return results_head
+
+# ...
+    results = None
+
+    if not okrsek:
+        results = my_func(2, 2, 4, 7)
+    else:
+        results = my_func(-1, ...)
+
+
+☝️ duplicitní podmínka, řádek 97, 98. Tady vlastně podmínky zbytečně nestuješ. Klidně tu první odstraň a nech až tu zanořenou (stejnou).
+
+☝️ type hints, špatná návratová hodnota, řádek 93, 102. Píšeš, že vracíš datový typ dict, ale o několik řádků níže vidím return None. Pokud si z nahraješ from typing import Optional, můžeš návratovou hodnotu popsat jako Optional[dict]. To znamená, že buď vracíš dict nebo None.
+❗ nesprávná metoda zápisu DictWriter, řádek 138-146. Pokud zapisuješ iterovatelnou hodnotu, je lepší pracovat s metodou writerows místo zápisu další komplikované a nepřehledné smyčky. Samozřejmě je předtím nutné, data řádně připravit.
+
+❤️  pěkné použití knihovny "argparse". Super, obzvlášť pokud spouštíš skript s více než jedním argumentem, potom je v tom mnohem větší pořádek.
+
+~~~
+
+Prosím, nelekni se mých poznámek. Nejde o zásadní nedostatky, pouze doporučení, která ti mohou do budoucna pomoci a za které bych byl já sám moc rád, kdyby mi je tehdy někdo předal.
+
+Prosím, podruhé, pokud máš 2 minutky, ohodnoť můj přístup k hodnocení. Pokud se ti něco nelíbilo, nebo nesouhlasíš, dej mi to určitě vědět. Tady je link [5].
+
+Kdyby tě cokoliv zajímalo, neváhej mi napsat na Discordu.
+Zdraví tě a hodně úspěchu přeje, Matouš.
+
+[1] https://peps.python.org/pep-0008/#imports
+[2] https://peps.python.org/pep-0008/#blank-lines
+[3] https://peps.python.org/pep-0008/#maximum-line-length
+[4] https://peps.python.org/pep-0008/#documentation-strings
+[5] https://forms.gle/u4rVR1gPUSwxNqDE6
+﻿
+Matouš Holinka
+matousholinka
+ 
